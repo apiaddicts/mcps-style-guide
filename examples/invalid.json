@@ -1,0 +1,37 @@
+{
+  "tools": [
+    {
+      "name": "Create_API",
+      "title": null,
+      "description": "",
+      "_meta": { "version": 1 },
+      "_meta": { "version": 2 },
+      "inputSchema": {
+        "type": "string",
+        "properties": {
+          "definition": {
+            "type": "object",
+            "default": {
+              "openapi": "2.0",
+              "components": {
+                "schemas": {
+                  "Pet": {
+                    "type": "object",
+                    "required": ["id", "name"],
+                    "properties": {
+                      "id": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "outputSchema": null
+    },
+    {
+      "inputSchema": {}
+    }
+  ]
+}

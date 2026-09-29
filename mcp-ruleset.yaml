@@ -1,0 +1,106 @@
+# Spectral ruleset for MCP (Model Context Protocol) tool definitions.
+# Validates documents shaped like a `tools/list` result: { "tools": [ ... ] }
+#
+# Usage:
+#   spectral lint -r mcp-ruleset.yaml path/to/mcp-tools.json
+
+functionsDir: ./functions
+functions:
+  - noDuplicateKeys
+  - requiredMatchesProperties
+
+rules:
+  tool-name-required-and-casing:
+    description: Every tool must have a camelCase name.
+    message: "{{description}} {{error}}"
+    severity: error
+    given: $.tools[*]
+    then:
+      - field: name
+        function: truthy
+      - field: name
+        function: pattern
+        functionOptions:
+          match: "^[a-z][a-zA-Z0-9]*$"
+
+  tool-title-not-null:
+    description: Tool title should be a valid non-null string.
+    message: "{{description}} {{error}}"
+    severity: warn
+    given: $.tools[*]
+    then:
+      # `schema` reports both a missing title and a null / non-string / empty one.
+      field: title
+      function: schema
+      functionOptions:
+        schema:
+          type: string
+          minLength: 1
+
+  tool-description-required:
+    description: Tools must have a clear description.
+    message: "{{description}} {{error}}"
+    severity: error
+    given: $.tools[*]
+    then:
+      field: description
+      function: truthy
+
+  tool-no-duplicate-keys:
+    description: Tool objects should not contain duplicate keys (e.g. duplicate _meta).
+    message: "{{error}}"
+    severity: error
+    given: $.tools[*]
+    then:
+      function: noDuplicateKeys
+
+  tool-input-schema-structure:
+    description: Input schemas must be defined as an object type.
+    message: "{{description}} {{error}}"
+    severity: error
+    given: $.tools[*]
+    then:
+      - field: inputSchema
+        function: truthy
+      - field: inputSchema.type
+        function: truthy
+      - field: inputSchema.type
+        function: pattern
+        functionOptions:
+          match: "^object$"
+
+  tool-property-description:
+    description: Every input property should have a description detailing its usage.
+    message: "{{description}} {{error}}"
+    severity: info
+    given: $.tools[*].inputSchema.properties[*]
+    then:
+      field: description
+      function: defined
+
+  openapi-embedded-version-check:
+    description: Embedded OpenAPI definitions must specify a valid OpenAPI 3.x version.
+    message: "{{description}} {{error}}"
+    severity: error
+    given: $.tools[*].inputSchema.properties..openapi
+    then:
+      function: pattern
+      functionOptions:
+        match: "^3\\."
+
+  embedded-schema-required-matches-properties:
+    description: Listed required fields in nested OpenAPI schemas must exist in properties.
+    message: "{{error}}"
+    severity: error
+    given: $.tools[*].inputSchema.properties..schemas[*]
+    then:
+      function: requiredMatchesProperties
+
+  tool-output-schema-defined:
+    description: outputSchema should be provided or mapped rather than left null.
+    message: "{{description}} {{error}}"
+    severity: warn
+    given: $.tools[*]
+    then:
+      field: outputSchema
+      function: truthy

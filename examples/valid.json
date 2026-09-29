@@ -1,0 +1,46 @@
+{
+  "tools": [
+    {
+      "name": "createApi",
+      "title": "Create API",
+      "description": "Creates a new API from an embedded OpenAPI definition.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the API to create."
+          },
+          "definition": {
+            "type": "object",
+            "description": "OpenAPI definition of the API.",
+            "default": {
+              "openapi": "3.0.3",
+              "info": { "title": "Pets", "version": "1.0.0" },
+              "paths": {},
+              "components": {
+                "schemas": {
+                  "Pet": {
+                    "type": "object",
+                    "required": ["id", "name"],
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "name": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["name", "definition"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" }
+        }
+      }
+    }
+  ]
+}
