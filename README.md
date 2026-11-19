@@ -8,7 +8,7 @@ It lints documents shaped like an MCP `tools/list` result:
 {
   "tools": [
     {
-      "name": "createApi",
+      "name": "create_api",
       "title": "Create API",
       "description": "Creates a new API from an embedded OpenAPI definition.",
       "inputSchema": { "type": "object", "properties": { "...": {} } },
@@ -75,63 +75,68 @@ Or point at a local copy (`extends: ./path/to/mcp-ruleset.yaml`). The `functions
 
 See [docs/rules.md](docs/rules.md) for the full reference: why each rule exists, passing and failing examples, and the Spectral output it produces.
 
-| Rule | Severity | What it checks |
-|------|----------|----------------|
-| `tool-name-required-and-casing` | error | Every tool has a `name` in camelCase (`^[a-z][a-zA-Z0-9]*$`) |
-| `tool-title-not-null` | warn | `title` is a non-null, non-empty string |
-| `tool-description-required` | error | `description` is present and not empty |
-| `tool-no-duplicate-keys` | error | A tool object has no duplicate keys (e.g. two `_meta`) |
-| `tool-input-schema-structure` | error | `inputSchema` exists and its `type` is `object` |
-| `tool-property-description` | info | Every property in `inputSchema.properties` has a `description` |
-| `openapi-embedded-version-check` | error | Any `openapi` field inside the input properties starts with `3.` |
-| `embedded-schema-required-matches-properties` | error | In embedded OpenAPI `schemas`, every `required` name exists in `properties` |
-| `tool-output-schema-defined` | warn | `outputSchema` is present and not `null` |
+Each rule has a code (`MCR001`...) and its Spectral id is `mcp:<code>`. Every message starts with the code.
+
+| Code | Rule id | Severity | What it checks |
+|------|---------|----------|----------------|
+| [MCR001](docs/resources/MCR001.md) | `mcp:MCR001` | error | Every tool has a `name` that follows the configured `naming-convention`: `snake_case` (default), `camelCase`, `kebab-case` or `UpperCamelCase` |
+| MCR002 | `mcp:MCR002` | warn | `title` is a non-null, non-empty string |
+| MCR003 | `mcp:MCR003` | error | `description` is present and not empty |
+| MCR004 | `mcp:MCR004` | error | A tool object has no duplicate keys (e.g. two `_meta`) |
+| MCR005 | `mcp:MCR005` | error | `inputSchema` exists and its `type` is `object` |
+| MCR006 | `mcp:MCR006` | info | Every property in `inputSchema.properties` has a `description` |
+| MCR007 | `mcp:MCR007` | error | Any `openapi` field inside the input properties starts with `3.` |
+| MCR008 | `mcp:MCR008` | error | In embedded OpenAPI `schemas`, every `required` name exists in `properties` |
+| MCR009 | `mcp:MCR009` | warn | `outputSchema` is present and not `null` |
 
 ### Examples
 
-**`tool-name-required-and-casing`**
+**MCR001 · `mcp:MCR001`**
 
 ```jsonc
+{ "name": "createApi" }   // ✗ with the default snake_case
 { "name": "Create_API" }  // ✗
-{ "name": "createApi" }   // ✓
+{ "name": "create_api" }  // ✓
 ```
 
-**`tool-title-not-null`**
+The convention is the rule's `naming-convention` option: with `camelCase`, `createApi` passes and `create_api` fails. See [docs/resources/MCR001.md](docs/resources/MCR001.md).
+
+**MCR002 · `mcp:MCR002`**
 
 ```jsonc
 { "title": null }          // ✗
 { "title": "Create API" }  // ✓
 ```
 
-**`tool-description-required`**
+**MCR003 · `mcp:MCR003`**
 
 ```jsonc
 { "description": "" }                              // ✗
 { "description": "Creates a new API from ..." }    // ✓
 ```
 
-**`tool-no-duplicate-keys`**
+**MCR004 · `mcp:MCR004`**
 
 ```jsonc
 { "_meta": { "version": 1 }, "_meta": { "version": 2 } }  // ✗
 { "_meta": { "version": 2 } }                             // ✓
 ```
 
-**`tool-input-schema-structure`**
+**MCR005 · `mcp:MCR005`**
 
 ```jsonc
 { "inputSchema": { "type": "string" } }                     // ✗
 { "inputSchema": { "type": "object", "properties": {} } }   // ✓
 ```
 
-**`tool-property-description`**
+**MCR006 · `mcp:MCR006`**
 
 ```jsonc
 "properties": { "name": { "type": "string" } }                                   // ✗
 "properties": { "name": { "type": "string", "description": "API name." } }       // ✓
 ```
 
-**`openapi-embedded-version-check`**
+**MCR007 · `mcp:MCR007`**
 
 ```jsonc
 "default": { "openapi": "2.0" }    // ✗
@@ -140,7 +145,7 @@ See [docs/rules.md](docs/rules.md) for the full reference: why each rule exists,
 
 An input property that is itself named `openapi` (a schema object, not a version string) doesn't trigger this rule.
 
-**`embedded-schema-required-matches-properties`**
+**MCR008 · `mcp:MCR008`**
 
 ```jsonc
 "schemas": {
@@ -151,7 +156,7 @@ An input property that is itself named `openapi` (a schema object, not a version
 }
 ```
 
-**`tool-output-schema-defined`**
+**MCR009 · `mcp:MCR009`**
 
 ```jsonc
 { "outputSchema": null }                  // ✗
@@ -160,34 +165,43 @@ An input property that is itself named `openapi` (a schema object, not a version
 
 ## Notes
 
-- Spectral reports duplicate keys on its own as a `parser` error. `tool-no-duplicate-keys` adds a named error for duplicates at the top level of a tool object. When a file has duplicates you will see both.
+- Spectral reports duplicate keys on its own as a `parser` error. `mcp:MCR004` adds a named error for duplicates at the top level of a tool object. When a file has duplicates you will see both.
 - To turn off or change the severity of a rule, override it in your own `.spectral.yaml`:
 
   ```yaml
   extends: [./mcp-ruleset.yaml]
   rules:
-    tool-property-description: off
-    tool-output-schema-defined: error
+    mcp:MCR006: off
+    mcp:MCR009: error
   ```
 
 ## Project structure
 
 ```
-mcp-ruleset.yaml                     Spectral ruleset
+mcp-ruleset.yaml                         Spectral ruleset
 functions/
-  noDuplicateKeys.js                 duplicate keys, read from parser diagnostics
-  requiredMatchesProperties.js       `required` names vs `properties`
+  mcp-tool-naming-convention.js          MCR001: tool names vs the configured naming convention
+  mcp-no-duplicate-keys.js               MCR004: duplicate keys, read from parser diagnostics
+  mcp-required-matches-properties.js     MCR008: `required` names vs `properties`
+docs/
+  rules.md                               reference of every rule
+  resources/MCRNNN.md                    full reference of a rule (MCR001)
 examples/
-  valid.json                         passes every rule
-  invalid.json                       breaks every rule
+  valid.json                             passes every rule
+  invalid.json                           breaks every rule
+test/
+  <revision>/<category>/mcrNNN-*.test.js unit tests per MCP revision (20241105, 20250326, 20250618, 20251125, 20260728)
+  <revision>/<category>/MCRNNN/          their fixtures
+  helpers/                               ruleset loader and shared fixtures
 ```
 
 ## Contributing
 
-1. Add or change the rule in `mcp-ruleset.yaml` (custom logic goes in `functions/`).
+1. Add or change the rule in `mcp-ruleset.yaml` with its `mcp:MCRNNN` id and an `MCRNNN: ` message prefix (custom logic goes in `functions/`, in a file named `mcp-<name>.js`).
 2. Update `examples/valid.json` and `examples/invalid.json` so the rule has a passing and a failing case.
-3. Run both examples and check the output.
-4. Add the rule to the tables in this README.
+3. Add or update its tests in `test/<revision>/<category>/` and run them with `npm test` (`npm install` first).
+4. Run both examples and check the output.
+5. Document the rule in `docs/resources/MCRNNN.md` and add it to the tables in this README and `docs/rules.md`.
 
 ## License
 

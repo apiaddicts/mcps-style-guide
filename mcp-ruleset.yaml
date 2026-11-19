@@ -6,26 +6,25 @@
 
 functionsDir: ./functions
 functions:
-  - noDuplicateKeys
-  - requiredMatchesProperties
+  - mcp-tool-naming-convention
+  - mcp-no-duplicate-keys
+  - mcp-required-matches-properties
 
 rules:
-  tool-name-required-and-casing:
-    description: Every tool must have a camelCase name.
-    message: "{{description}} {{error}}"
+  mcp:MCR001:
+    description: "Every tool must have a name that follows the configured naming convention (default: snake_case)."
+    message: "MCR001: {{error}}"
     severity: error
-    given: $.tools[*]
+    resolved: false
+    given: "$"
     then:
-      - field: name
-        function: truthy
-      - field: name
-        function: pattern
-        functionOptions:
-          match: "^[a-z][a-zA-Z0-9]*$"
+      function: mcp-tool-naming-convention
+      functionOptions:
+        naming-convention: snake_case
 
-  tool-title-not-null:
+  mcp:MCR002:
     description: Tool title should be a valid non-null string.
-    message: "{{description}} {{error}}"
+    message: "MCR002: {{description}} {{error}}"
     severity: warn
     given: $.tools[*]
     then:
@@ -37,26 +36,26 @@ rules:
           type: string
           minLength: 1
 
-  tool-description-required:
+  mcp:MCR003:
     description: Tools must have a clear description.
-    message: "{{description}} {{error}}"
+    message: "MCR003: {{description}} {{error}}"
     severity: error
     given: $.tools[*]
     then:
       field: description
       function: truthy
 
-  tool-no-duplicate-keys:
+  mcp:MCR004:
     description: Tool objects should not contain duplicate keys (e.g. duplicate _meta).
-    message: "{{error}}"
+    message: "MCR004: {{error}}"
     severity: error
     given: $.tools[*]
     then:
-      function: noDuplicateKeys
+      function: mcp-no-duplicate-keys
 
-  tool-input-schema-structure:
+  mcp:MCR005:
     description: Input schemas must be defined as an object type.
-    message: "{{description}} {{error}}"
+    message: "MCR005: {{description}} {{error}}"
     severity: error
     given: $.tools[*]
     then:
@@ -69,18 +68,18 @@ rules:
         functionOptions:
           match: "^object$"
 
-  tool-property-description:
+  mcp:MCR006:
     description: Every input property should have a description detailing its usage.
-    message: "{{description}} {{error}}"
+    message: "MCR006: {{description}} {{error}}"
     severity: info
     given: $.tools[*].inputSchema.properties[*]
     then:
       field: description
       function: defined
 
-  openapi-embedded-version-check:
+  mcp:MCR007:
     description: Embedded OpenAPI definitions must specify a valid OpenAPI 3.x version.
-    message: "{{description}} {{error}}"
+    message: "MCR007: {{description}} {{error}}"
     severity: error
     given: $.tools[*].inputSchema.properties..openapi
     then:
@@ -88,17 +87,17 @@ rules:
       functionOptions:
         match: "^3\\."
 
-  embedded-schema-required-matches-properties:
+  mcp:MCR008:
     description: Listed required fields in nested OpenAPI schemas must exist in properties.
-    message: "{{error}}"
+    message: "MCR008: {{error}}"
     severity: error
     given: $.tools[*].inputSchema.properties..schemas[*]
     then:
-      function: requiredMatchesProperties
+      function: mcp-required-matches-properties
 
-  tool-output-schema-defined:
+  mcp:MCR009:
     description: outputSchema should be provided or mapped rather than left null.
-    message: "{{description}} {{error}}"
+    message: "MCR009: {{description}} {{error}}"
     severity: warn
     given: $.tools[*]
     then:

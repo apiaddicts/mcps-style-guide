@@ -1,21 +1,21 @@
 # MCP Ruleset Reference
 
-This document explains every rule in [`mcp-ruleset.yaml`](../mcp-ruleset.yaml): what it checks, why it matters, and what passing and failing definitions look like.
+This document explains every rule in [`mcp-ruleset.yaml`](../mcp-ruleset.yaml): what it checks, why it matters, and what passing and failing definitions look like. Each rule has a code (`MCR001`, `MCR002`...) and its Spectral id is `mcp:<code>`; every message starts with the code. Each section is titled with the rule id, which is also the anchor apiquality links to (`docs/rules.md#mcp:MCR001`).
 
 ## Contents
 
 - [How the ruleset works](#how-the-ruleset-works)
 - [Severity levels](#severity-levels)
 - Rules
-  - [tool-name-required-and-casing](#tool-name-required-and-casing)
-  - [tool-title-not-null](#tool-title-not-null)
-  - [tool-description-required](#tool-description-required)
-  - [tool-no-duplicate-keys](#tool-no-duplicate-keys)
-  - [tool-input-schema-structure](#tool-input-schema-structure)
-  - [tool-property-description](#tool-property-description)
-  - [openapi-embedded-version-check](#openapi-embedded-version-check)
-  - [embedded-schema-required-matches-properties](#embedded-schema-required-matches-properties)
-  - [tool-output-schema-defined](#tool-output-schema-defined)
+  - [mcp:MCR001](#mcpmcr001) (tool-name-required-and-casing)
+  - [mcp:MCR002](#mcpmcr002) (tool-title-not-null)
+  - [mcp:MCR003](#mcpmcr003) (tool-description-required)
+  - [mcp:MCR004](#mcpmcr004) (tool-no-duplicate-keys)
+  - [mcp:MCR005](#mcpmcr005) (tool-input-schema-structure)
+  - [mcp:MCR006](#mcpmcr006) (tool-property-description)
+  - [mcp:MCR007](#mcpmcr007) (openapi-embedded-version-check)
+  - [mcp:MCR008](#mcpmcr008) (embedded-schema-required-matches-properties)
+  - [mcp:MCR009](#mcpmcr009) (tool-output-schema-defined)
 - [A complete example](#a-complete-example)
 
 ## How the ruleset works
@@ -26,7 +26,7 @@ An MCP server advertises its tools through the `tools/list` method. The response
 {
   "tools": [
     {
-      "name": "getWeather",
+      "name": "get_weather",
       "title": "Get weather",
       "description": "Returns the current weather for a city.",
       "inputSchema": {
@@ -61,22 +61,32 @@ Each rule targets part of the document with a JSONPath expression (`given`) and 
 
 ---
 
-## tool-name-required-and-casing
+## mcp:MCR001
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR001` |
+| **Former id** | `tool-name-required-and-casing` |
 | **Severity** | error |
 | **Target** | `$.tools[*].name` |
-| **Check** | `name` is present and matches `^[a-z][a-zA-Z0-9]*$` |
+| **Check** | `name` is a non-empty string that follows the configured naming convention |
+| **Parameter** | `naming-convention`: `snake_case` (default), `camelCase`, `kebab-case` or `UpperCamelCase` |
+| **Function** | [`functions/mcp-tool-naming-convention.js`](../functions/mcp-tool-naming-convention.js) |
+
+Full reference, with every convention and its examples: [resources/MCR001.md](resources/MCR001.md). The examples below use the default, `snake_case`.
 
 ### Why
 
-The name is the identifier clients use to call the tool. It must exist, and a single casing convention across tools makes them predictable to models and humans alike. camelCase also avoids characters (spaces, dots, dashes) that some clients reject in tool names.
+The name is the identifier clients use to call the tool. It must exist, and a single naming convention across tools makes them predictable to models and humans alike. Every convention the rule offers also avoids characters (spaces, dots, colons, slashes) that some clients reject in tool names.
 
 ### Fails
 
 ```json
 { "tools": [ { "name": "Create_API" } ] }
+```
+
+```json
+{ "tools": [ { "name": "createApi" } ] }
 ```
 
 ```json
@@ -90,63 +100,69 @@ The name is the identifier clients use to call the tool. It must exist, and a si
 ### Passes
 
 ```json
-{ "tools": [ { "name": "createApi" } ] }
+{ "tools": [ { "name": "create_api" } ] }
 ```
+
+With `naming-convention: camelCase`, `createApi` passes and `create_api` fails; with `kebab-case`, only `create-api` passes; with `UpperCamelCase`, only `CreateApi`.
 
 ### Output
 
 ```
-4:15  error  tool-name-required-and-casing  Every tool must have a camelCase name. "Create_API" must match the pattern "^[a-z][a-zA-Z0-9]*$"  tools[0].name
-33:5  error  tool-name-required-and-casing  Every tool must have a camelCase name. "[1].name" property must be truthy                          tools[1]
+ 4:15  error  mcp:MCR001  MCR001: Tool name 'Create_API' must be snake_case.  tools[0].name
+ 33:5  error  mcp:MCR001  MCR001: Tool must have a snake_case name.            tools[1]
 ```
 
 ---
 
-## tool-title-not-null
+## mcp:MCR002
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR002` |
+| **Former id** | `tool-title-not-null` |
 | **Severity** | warn |
 | **Target** | `$.tools[*].title` |
 | **Check** | `title` is a string with at least one character |
 
 ### Why
 
-`title` is the human-readable label that client UIs show instead of the machine name. Leaving it out, or setting it to `null`, means users see `createApi` in menus and confirmation prompts.
+`title` is the human-readable label that client UIs show instead of the machine name. Leaving it out, or setting it to `null`, means users see `create_api` in menus and confirmation prompts.
 
 ### Fails
 
 ```json
-{ "name": "createApi", "title": null }
+{ "name": "create_api", "title": null }
 ```
 
 ```json
-{ "name": "createApi", "title": "" }
+{ "name": "create_api", "title": "" }
 ```
 
 ```json
-{ "name": "createApi" }
+{ "name": "create_api" }
 ```
 
 ### Passes
 
 ```json
-{ "name": "createApi", "title": "Create API" }
+{ "name": "create_api", "title": "Create API" }
 ```
 
 ### Output
 
 ```
-5:16  warning  tool-title-not-null  Tool title should be a valid non-null string. "title" property type must be string  tools[0].title
-33:5  warning  tool-title-not-null  Tool title should be a valid non-null string. "[1].title" property must exist      tools[1]
+5:16  warning  mcp:MCR002  MCR002: Tool title should be a valid non-null string. "title" property type must be string  tools[0].title
+33:5  warning  mcp:MCR002  MCR002: Tool title should be a valid non-null string. "[1].title" property must exist      tools[1]
 ```
 
 ---
 
-## tool-description-required
+## mcp:MCR003
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR003` |
+| **Former id** | `tool-description-required` |
 | **Severity** | error |
 | **Target** | `$.tools[*].description` |
 | **Check** | `description` is present and not empty |
@@ -158,18 +174,18 @@ The description is what the model reads to decide *whether* to call a tool. With
 ### Fails
 
 ```json
-{ "name": "createApi", "description": "" }
+{ "name": "create_api", "description": "" }
 ```
 
 ```json
-{ "name": "createApi" }
+{ "name": "create_api" }
 ```
 
 ### Passes
 
 ```json
 {
-  "name": "createApi",
+  "name": "create_api",
   "description": "Creates a new API in the catalog from an OpenAPI 3.x definition. Returns the new API's id."
 }
 ```
@@ -177,19 +193,21 @@ The description is what the model reads to decide *whether* to call a tool. With
 ### Output
 
 ```
-6:22  error  tool-description-required  Tools must have a clear description. "description" property must be truthy  tools[0].description
+6:22  error  mcp:MCR003  MCR003: Tools must have a clear description. "description" property must be truthy  tools[0].description
 ```
 
 ---
 
-## tool-no-duplicate-keys
+## mcp:MCR004
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR004` |
+| **Former id** | `tool-no-duplicate-keys` |
 | **Severity** | error |
 | **Target** | `$.tools[*]` |
 | **Check** | No key appears twice at the top level of a tool object |
-| **Function** | [`functions/noDuplicateKeys.js`](../functions/noDuplicateKeys.js) |
+| **Function** | [`functions/mcp-no-duplicate-keys.js`](../functions/mcp-no-duplicate-keys.js) |
 
 ### Why
 
@@ -199,7 +217,7 @@ JSON parsers keep only the last value of a repeated key and silently drop the re
 
 ```json
 {
-  "name": "createApi",
+  "name": "create_api",
   "_meta": { "version": 1 },
   "_meta": { "version": 2 }
 }
@@ -209,7 +227,7 @@ JSON parsers keep only the last value of a repeated key and silently drop the re
 
 ```json
 {
-  "name": "createApi",
+  "name": "create_api",
   "_meta": { "version": 2 }
 }
 ```
@@ -218,17 +236,19 @@ JSON parsers keep only the last value of a repeated key and silently drop the re
 
 ```
 8:7   error  parser                  Duplicate key: _meta                         tools[0]._meta
-8:15  error  tool-no-duplicate-keys  Tool object contains duplicate key "_meta".  tools[0]._meta
+8:15  error  mcp:MCR004  MCR004: Tool object contains duplicate key "_meta".  tools[0]._meta
 ```
 
-Spectral's own parser also reports duplicate keys, so you see two lines for the same problem. The `parser` line covers duplicates anywhere in the file; the `tool-no-duplicate-keys` line is scoped to tool objects and can be turned off or re-leveled like any other rule.
+Spectral's own parser also reports duplicate keys, so you see two lines for the same problem. The `parser` line covers duplicates anywhere in the file; the `mcp:MCR004` line is scoped to tool objects and can be turned off or re-leveled like any other rule.
 
 ---
 
-## tool-input-schema-structure
+## mcp:MCR005
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR005` |
+| **Former id** | `tool-input-schema-structure` |
 | **Severity** | error |
 | **Target** | `$.tools[*].inputSchema` |
 | **Check** | `inputSchema` exists and `inputSchema.type` is `object` |
@@ -248,7 +268,7 @@ MCP passes tool arguments as a named JSON object. The input schema must describe
 ```
 
 ```json
-{ "name": "createApi" }
+{ "name": "create_api" }
 ```
 
 ### Passes
@@ -274,16 +294,18 @@ A tool that takes no arguments still needs an object schema:
 ### Output
 
 ```
-10:17  error  tool-input-schema-structure  Input schemas must be defined as an object type. "string" must match the pattern "^object$"              tools[0].inputSchema.type
-34:21  error  tool-input-schema-structure  Input schemas must be defined as an object type. "inputSchema.type" property must be truthy          tools[1].inputSchema
+10:17  error  mcp:MCR005  MCR005: Input schemas must be defined as an object type. "string" must match the pattern "^object$"              tools[0].inputSchema.type
+34:21  error  mcp:MCR005  MCR005: Input schemas must be defined as an object type. "inputSchema.type" property must be truthy          tools[1].inputSchema
 ```
 
 ---
 
-## tool-property-description
+## mcp:MCR006
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR006` |
+| **Former id** | `tool-property-description` |
 | **Severity** | info |
 | **Target** | `$.tools[*].inputSchema.properties[*]` |
 | **Check** | Every input property has a `description` |
@@ -314,15 +336,17 @@ Property names are often short or ambiguous (`id`, `q`, `mode`). A description t
 ### Output
 
 ```
-12:24  information  tool-property-description  Every input property should have a description detailing its usage. "definition.description" property must be defined  tools[0].inputSchema.properties.definition
+12:24  information  mcp:MCR006  MCR006: Every input property should have a description detailing its usage. "definition.description" property must be defined  tools[0].inputSchema.properties.definition
 ```
 
 ---
 
-## openapi-embedded-version-check
+## mcp:MCR007
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR007` |
+| **Former id** | `openapi-embedded-version-check` |
 | **Severity** | error |
 | **Target** | `$.tools[*].inputSchema.properties..openapi` (any depth) |
 | **Check** | The `openapi` value starts with `3.` |
@@ -370,19 +394,21 @@ Also passes: an input property that is itself *named* `openapi`. Its value is a 
 ### Output
 
 ```
-15:26  error  openapi-embedded-version-check  Embedded OpenAPI definitions must specify a valid OpenAPI 3.x version. "2.0" must match the pattern "^3\\."  tools[0].inputSchema.properties.definition.default.openapi
+15:26  error  mcp:MCR007  MCR007: Embedded OpenAPI definitions must specify a valid OpenAPI 3.x version. "2.0" must match the pattern "^3\\."  tools[0].inputSchema.properties.definition.default.openapi
 ```
 
 ---
 
-## embedded-schema-required-matches-properties
+## mcp:MCR008
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR008` |
+| **Former id** | `embedded-schema-required-matches-properties` |
 | **Severity** | error |
 | **Target** | `$.tools[*].inputSchema.properties..schemas[*]` |
 | **Check** | Every name in a schema's `required` array exists in its `properties` |
-| **Function** | [`functions/requiredMatchesProperties.js`](../functions/requiredMatchesProperties.js) |
+| **Function** | [`functions/mcp-required-matches-properties.js`](../functions/mcp-required-matches-properties.js) |
 
 ### Why
 
@@ -426,15 +452,17 @@ In an embedded OpenAPI document (under `components.schemas`), a `required` field
 Each missing name is reported at its position in the `required` array:
 
 ```
-20:40  error  embedded-schema-required-matches-properties  Required field "name" is not defined in properties.  tools[0].inputSchema.properties.definition.default.components.schemas.Pet.required[1]
+20:40  error  mcp:MCR008  MCR008: Required field "name" is not defined in properties.  tools[0].inputSchema.properties.definition.default.components.schemas.Pet.required[1]
 ```
 
 ---
 
-## tool-output-schema-defined
+## mcp:MCR009
 
 | | |
 |---|---|
+| **Rule id** | `mcp:MCR009` |
+| **Former id** | `tool-output-schema-defined` |
 | **Severity** | warn |
 | **Target** | `$.tools[*].outputSchema` |
 | **Check** | `outputSchema` is present and not `null` |
@@ -446,18 +474,18 @@ An output schema tells clients what shape the tool's structured result will have
 ### Fails
 
 ```json
-{ "name": "createApi", "outputSchema": null }
+{ "name": "create_api", "outputSchema": null }
 ```
 
 ```json
-{ "name": "createApi" }
+{ "name": "create_api" }
 ```
 
 ### Passes
 
 ```json
 {
-  "name": "createApi",
+  "name": "create_api",
   "outputSchema": {
     "type": "object",
     "properties": {
@@ -471,8 +499,8 @@ An output schema tells clients what shape the tool's structured result will have
 ### Output
 
 ```
-31:23  warning  tool-output-schema-defined  outputSchema should be provided or mapped rather than left null. "outputSchema" property must be truthy      tools[0].outputSchema
-33:5   warning  tool-output-schema-defined  outputSchema should be provided or mapped rather than left null. "[1].outputSchema" property must be truthy  tools[1]
+31:23  warning  mcp:MCR009  MCR009: outputSchema should be provided or mapped rather than left null. "outputSchema" property must be truthy      tools[0].outputSchema
+33:5   warning  mcp:MCR009  MCR009: outputSchema should be provided or mapped rather than left null. "[1].outputSchema" property must be truthy  tools[1]
 ```
 
 ---
@@ -485,7 +513,7 @@ This definition passes every rule. It's the same as [`examples/valid.json`](../e
 {
   "tools": [
     {
-      "name": "createApi",
+      "name": "create_api",
       "title": "Create API",
       "description": "Creates a new API from an embedded OpenAPI definition.",
       "inputSchema": {

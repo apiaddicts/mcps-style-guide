@@ -1,7 +1,7 @@
 {
   "tools": [
     {
-      "name": "createApi",
+      "name": "create_api",
       "title": "Create API",
       "description": "Creates a new API from an embedded OpenAPI definition.",
       "inputSchema": {
